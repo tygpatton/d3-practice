@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+svg rect {
+    fill: rgb(181,161,161);
+}
+
+.axis-label {
+  fill: #777;
+  font: 11px Helvetica, Arial, sans-serif;
+  text-anchor: end;
+}
+
+.data-label {
+  fill: white;
+  font: 10px Helvetica, Arial, sans-serif;
+  text-anchor: center;
+}
+
+.bar.Current.Max,
+.bar.City-Wide.Median {
+    fill: rgb(85,98,112);
+}
+
+.axis-label.Current.Max,
+.axis-label.City-Wide.Median {
+    fill: black;
+}
+
+</style>
+<style type="text/css"></style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var margin = {top: 0, right: 0, bottom: 0, left: 0},
+    width = 800 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom,
+    barPadding = 3;
+
+var svg = d3.select("body")
+			.append("svg")
+            .attr("id", "fullChart")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+        .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var xscale = d3.scale.linear()
+        .domain([90,301])
+        .range([80, width - 250]);
+
+d3.csv("nhood_aggs3.csv", function(error, data) {
+    if (error) return console.error(error);
+
+    data.sort(function(a, b) {
+        return a.break_even - b.break_even;
+    });
+
+    svg.selectAll("rect")
+        .data(data)
+        .enter().append("rect")
+        .attr("class", function(d) {
+            return "bar " + d.neighborho;
+        })
+        .attr("transform", "translate(120,0)")
+        .attr("x", 0)
+        .attr("y", function(d, i) {
+            return i * (height / data.length);
+        })
+        .attr("width", function(d) {
+            return xscale(d.break_even);
+        })
+        .attr("height", (height / data.length) - barPadding);
+
+    svg.selectAll(".axis-label")
+        .data(data)
+        .enter().append("text")
+        .attr("class", function(d) {
+            return "axis-label " + d.neighborho;
+        })
+        .attr("x", 113)
+        .attr("y", function(d, i) {
+            return i * (height / data.length) + 10.5;
+        })
+        .text(function(d) {
+            return d.neighborho;
+        });
+
+    svg.selectAll(".data-label")
+        .data(data)
+        .enter().append("text")
+        .attr("transform", "translate(110,0)")
+        .attr("class", "data-label")
+        .attr("x", function(d) {
+            return xscale(d.break_even) - 20;
+        })
+        .attr("y", function(d, i) {
+            return i * (height / data.length) + 9;
+        })
+        // .attr("text-anchor", "middle")
+        .text(function(d) {
+            return d.break_even;
+        });
+});
+
+</script>
+</body>

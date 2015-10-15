@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.bubble.step5 { fill:rgb(250,213,229); }
+.bubble.step4 { fill:rgb(246,173,205); }
+.bubble.step3 { fill:rgb(242,135,182); }
+.bubble.step2 { fill:rgb(239,91,161); }
+.bubble.step1 { fill:rgb(236,20,140); }
+.bubble.step0 { fill:rgb(233,0,120); }
+
+.land { 
+    fill: rgb(242,230,230);
+    fill-opacity: 0.5;
+}
+
+.border {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.legend text {
+  fill: #777;
+  font: 10px sans-serif;
+  text-anchor: left;
+}
+
+.nhood-label {
+    fill: black;
+    fill-opacity: 1;
+    font: 12px sans-serif;
+    font-weight: 400;
+    text-anchor: middle;
+}
+
+</style>
+<style type="text/css"></style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+var margin = {top: 100, right: 0, bottom: 0, left: 100},
+    width = 960 - margin.left - margin.right,
+    height = 1160 - margin.top - margin.bottom;
+
+
+var projection = d3.geo.mercator()
+    .center([-122.4183, 37.7750])
+    .scale((1 << 21) / 2 / Math.PI)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geo.path().projection(projection);
+
+var svg = d3.select("body")
+			.append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+        .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv("cl_locs_w_predictions.csv", function(error, preds) {
+    if (error) return console.error(error);
+
+    svg.selectAll("circle")
+        .data(preds)
+        .enter().append("circle")
+        .attr("r", 3)
+        .attr("fill-opacity", 0.8)
+        .attr("class", function(d) {
+            return "bubble step" + d.break_intervals;
+        })
+        .attr("transform", function(d) {
+            return "translate(" + projection([d.longitude,d.lat]) + ")";
+        });
+});
+
+d3.json("sf2.json", function(error, sf) {
+	if (error) return console.error(error);
+
+    var subunits = topojson.feature(sf, sf.objects.nhoods2);
+
+    svg.append("path")
+    	.datum(subunits)
+        .attr("class", "land")
+    	.attr("d", path);
+
+    svg.append("path")
+        .datum(topojson.mesh(sf, sf.objects.nhoods2, function(a, b) {
+            return a !== b;
+        }))
+        .attr("class", "border")
+        .attr("d", path);
+
+    d3.json("nhoods2.json", function(error, nhoods) {
+        if (error) return console.error(error);
+
+        svg.selectAll(".nhood-label")
+            .data(nhoods.features)
+            .enter().append("text")
+            .attr("class", "nhood-label")
+            .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+            .attr("dy", ".35em")
+            .text(function(d) { return d.properties.neighborho; });
+    });
+});
+
+
+var legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", "translate(20,100)");
+
+var steps = [5, 4, 3, 2, 1, 0];
+
+var legendEntries = ["Fewer than 150 days", "150 to 200 days", "200 to 250 days",
+        "250 to 300 days", "300 to 350 days", "Greater than 350 days"];
+
+legend.append("rect")
+    .attr("width", 100)
+    .attr("height", 100)
+    .attr("fill", "black");
+
+
+legend.selectAll("circle")
+    .data(steps)
+    .enter().append("circle")
+    .attr("stroke", "black")
+    .attr("cy", function(d, i) { return i * 20; })
+    .attr("r", 7)
+    .attr("class", function(d) {
+        return "bubble step" + d;
+    });
+
+legend.selectAll("text")
+    .data(legendEntries)
+    .enter().append("text")
+    .text(function(d) {
+        return d;
+    });
+
+
+</script>
+</body>
